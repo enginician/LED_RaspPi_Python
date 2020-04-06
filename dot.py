@@ -11,7 +11,7 @@ LED_pin = board.D18 # Choose an open pin connected to the Data In of the NeoPixe
 num_pixels = 60 # The number of NeoPixels
 ORDER = neopixel.GRB # The order of the pixel colors - RGB or GRB. Some NeoPixels have red and green reversed! For RGBW NeoPixels, simply change the ORDER to RGBW or GRBW.
 
-pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=0.3, auto_write = False, pixel_order = ORDER)
+pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=1, auto_write = False, pixel_order = ORDER)
 # Select the max brightnee as afloat from 0.0 to 1.0
 # See Neopixel Python library documentation for further details: https://circuitpython.readthedocs.io/projects/neopixel/en/latest/api.html
 
@@ -21,41 +21,61 @@ pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=0.3, auto_write = Fal
 def sparkle():
     pixels[randint(0,num_pixels-1)] = (255,255,160)
     pixels.show()
-    time.sleep(0.01)
+    time.sleep(0.05)
     pixels.fill((0,0,0))
     
 def bounceballs():
    
-    counter = 0
-    v0 = 300
-    ball = dot(color = [255,0,0], size = 2, pos=0,speed = v0)
+    counter = [0,0,0,0,0,0]
+    v0 = [400, 400, 400, 400, 400, 400]
+    balls = [dot(color = [255,0,0], size = 2, pos=0,speed = v0[0]),
+             dot(color = [0,255,0], size = 2, pos=0,speed = v0[1]),
+             dot(color = [0,0,255], size = 2, pos=0,speed = v0[2]),
+             dot(color = [255,255,0], size = 2, pos=0,speed = v0[3]),
+             dot(color = [0,255,255], size = 2, pos=0,speed = v0[4]),
+             dot(color = [255,0,255], size = 2, pos=0,speed = v0[5])]
     g = 9.81 # Erdbeschleunigung in m/s^2
-    dissipation = 20 # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
+    dissipation = [12, 20, 25, 30, 10, 5] # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
                     # Technically this would need to be calculated based on energy approach, but to save us from a sqrt calculation this is just speed based and needs to be adjusted so that visuals look cool. This is no simulation :)
-    speedatbounce = v0
+    speedatbounce = [v0[0],v0[1], v0[2], v0[3], v0[4], v0[5]]
     
     while True:
         
-        if int(ball.pos) <= 0 and ball.speed < 0:
-            print("BOUNCE")
-            speedatbounce = - ball.speed * (100 - dissipation)/100
-            counter = 0
-            print("speedatbounce ist jetzt {}".format(speedatbounce))
+        output = 0
+        
+        for x in range (len(balls)):
+           
+            if int(balls[x].pos) <= 0 and balls[x].speed < 0:
+                print("BOUNCE")
+                speedatbounce[x] = - balls[x].speed * (100 - dissipation[x])/100 - 2
+                counter[x] = 0
+                print("speedatbounce fuer {} ist jetzt {}".format(x,speedatbounce[x]))
+                
+            if int(balls[x].pos) < 1 and abs(balls[x].speed) < 10:
+                speedatbounce[x] = v0[x]
+                counter[x] = 0
+                balls[x].pos = 0
+                print("SHOOT")
+            print("x ist {}, speedatbounce[x] ist {}, g ist {} und counter[x] ist {}".format(x, speedatbounce[x], g, counter[x]) )  
+            balls[x].speed = speedatbounce[x]-(g*counter[x])  
+            print ("ball speed is {} and ball position is {}".format(balls[x].speed, int(balls[x].pos)))        
+            counter[x] +=1
             
-        if int(ball.pos) < 1 and abs(ball.speed) < 10:
-            speedatbounce = v0
-            counter = 0
-            ball.pos = (0)
-            print("SHOOT")
-        ball.speed = speedatbounce - (g*counter)
-            
-        print ("ball speed is {} and ball position is {}".format(ball.speed, int(ball.pos)))
+            balls[x].getlayer()
+            output += balls[x].layer
+                 
+            # normalize if resulted color values exceed 255
+            for i in range(output.shape[0]):
+                m = max(output[i])
+                if m >255:
+                    output[i] = [int(i/(m/255)) for i in output[i]]
+                    
+            for i in range(num_pixels):
+                pixels[i] = tuple(output[i])
+                
+        pixels.show()
+        time.sleep(0.01) 
 
-        
-        ball.showlayer()
-        
-        counter += 1
-        time.sleep(0.01)
     
 class dot:
     def __init__(self, pos=0, color=[0,0,0], size=0, speed=0):
@@ -81,7 +101,8 @@ class dot:
                 layer.insert(x,self.color)
         self.layer = np.array(layer)
      
-    def showlayer(self):
+    def showlayer(self):     
+        
         self.getlayer()
         output = self.layer
         for i in range(num_pixels):
