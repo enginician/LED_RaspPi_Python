@@ -40,7 +40,6 @@ def bounceballs(ball, counter, offset):
         return(offset)
         print("ball.speed ist jetzt {}".format(ball.speed))
     
-
 class dot:
     def __init__(self, pos=0, color=[0,0,0], size=0, speed=0):
         
@@ -69,39 +68,69 @@ class dot:
                 layer.insert(x,self.color)
         self.layer = np.array(layer)
 
-# Computes resulting color vector from all color layers and send output to LED strip              
-def show(outputbefore):
-    output = 0
+# Computes resulting color vector from all color layers and send output to LED strip
+# this replaces the NeoPixel built-in pixels.show() and allows to overlay all effects in this code
+def lighttrains():
     
-    # create vector "output" that contains light information for every pixel considering all light objects
-    for x in range (len(dots)):
-        dots[x].getlayer()
-        output += dots[x].layer
+    dots=[dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255]),
+        dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255]),
+        dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255])]
+        
+    counter = 0 #timing counter to synchronize actions
+    dotcounter = 0 # initialize counter that counts number of instances of LED dots
+    dotindex = 0 # initialize dotindex
+    timer= randint(10,300)
+        
+    #initialize variable used for leaving light traces in show()
+    outputbefore = []
+    for x in range(num_pixels):
+        outputbefore.append([0,0,0])
+    outputbefore = np.array(outputbefore)
     
-    # consider light information from previous calc step to create light trace effect     
-    for x in range(len(output)):
-        if all(output[x] == 0) and any(outputbefore[x]!= 0):
-            output[x] = outputbefore[x]*0.4
-    
-    # normalize if resultet color values exceed 255
-    for i in range(output.shape[0]):
-        m = max(output[i])
-        if m >255:
-            output[i] = [int(i/(m/255)) for i in output[i]]
+    while True:
             
-    # send output to LED strip      
-    for i in range(num_pixels):
-        pixels[i] = tuple(output[i])
-    pixels.show()
-    
-    # leave a light trace behind moving light objects
-    outputbefore = output
-#     print("~~~~~~~~~~~~~~~~~~~~~~~~~")
-#     print("outputbefore is {}".format(outputbefore))
-#     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-#     print("              END OF LOOP                ")
-#     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    return (outputbefore)
+#         if counter == timer and dotcounter < 6:
+#                     dots.append(dot(color = [randint(0,255),randint(0,255),randint(0,255)]))
+#                     dotcounter+=1
+#                     print(dotcounter)
+                    
+        if counter == timer:
+            dots[dotindex].size = randint(2,8)
+            dots[dotindex].speed = randint(-100,100)
+            timer = randint(counter+50, counter +200)
+            dotindex+=1
+            if dotindex >= len(dots):
+                dotindex =0
+            print ("timer updated and and dot #{} changed".format(dotindex)) 
+        
+        output = 0
+        
+        # create vector "output" that contains light information for every pixel considering all light objects
+        for x in range (len(dots)):
+            dots[x].getlayer()
+            output += dots[x].layer
+        
+        # consider light information from previous calc step to create light trace effect     
+        for x in range(len(output)):
+            if all(output[x] == 0) and any(outputbefore[x]!= 0):
+                output[x] = outputbefore[x]*0.4
+        
+        # normalize if resultet color values exceed 255
+        for i in range(output.shape[0]):
+            m = max(output[i])
+            if m >255:
+                output[i] = [int(i/(m/255)) for i in output[i]]
+                
+        # send output to LED strip      
+        for i in range(num_pixels):
+            pixels[i] = tuple(output[i])
+        pixels.show()
+        
+        # leave a light trace behind moving light objects
+        outputbefore = output
+        
+        time.sleep(0.01)
+        counter+=1
 
 # Define functions which turns off LEDs when code is interrupted.
 def turnoff(wait_ms):
@@ -116,54 +145,17 @@ if __name__ == '__main__':
     print("Press Ctrl+c to turn off LEDs and exit")
     
     try:
-        dots=[dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255]),
-              dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255]),
-              dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255]),
-              dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255]),
-               dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255])]        
-#         dots=[dot(color=[255,0,0], size=2, speed=0, pos=1)]
-        #ball = dots[0]
-#               dot(color=[0,255,0], size=8, speed=-10, pos=0),
-#               dot(color=[0,0,255], size=8, speed=20, pos=25),
-#               dot(color=[125,125,0], size=2, speed=-30, pos=50),
-#               dot(color=[0,125,125], size=2, speed=-45, pos=0),
-#               dot(color=[125,0,125], size=2, speed=30, pos=10)]
-        counter = 0 #timing counter to synchronize actions
-        dotcounter = 0 # initialize counter that counts number of instances od LED dots
-        dotindex = 0 # initialize dotindex
-        offset = 0.0
-        timer= randint(10,300)
-        
-        #initialize variable used for leaving light traces in show()
-        outputbefore = []
-        for x in range(num_pixels):
-            outputbefore.append([0,0,0])
-        outputbefore = np.array(outputbefore)
-                                           
+                                               
         while True:
+            print("yay, we made it this far")
+            lighttrains()
+            print("shit, we left the function")
+          
 
-            
-            if counter == timer:
-                dots.append(dot(color = [randint(0,255),randint(0,255),randint(0,255)]))
-                dotcounter+=1
-                print(dotcounter)
-                
-            if counter == timer:
-                dots[dotindex].size = randint(2,8)
-                dots[dotindex].speed = randint(-100,100)
-                timer = randint(counter+50, counter +200)
-                dotindex+=1
-                if dotindex >= len(dots):
-                    dotindex =0
-                print ("timer updated and and dot #{} changed".format(dotindex)) 
-            
-            # calculate and send the output to the LED strip and exchange before value for light trace effect
-            #offset = bounceballs(ball, counter, offset)
-            outputbefore = show(outputbefore)
-            time.sleep(0.01)
-            counter+=1
 
-#             sparkle()
+
+
+
               
     # if program is interrupted (e.g. through Ctrl+c), all pixels are turned off        
     except KeyboardInterrupt:
