@@ -1,4 +1,4 @@
-#WS2812b LED Strip Learning Code
+# LED_RaspPi_Python
 
-This code is for me learning Python while creating various light effects with an
-addressable LED strip and a raspberry pi.
+Repository and project for me to learn Git, GitHub and Python using a WS2812 addressable LED strip,
+a raspberry pi and Python to create various LED light effects.
