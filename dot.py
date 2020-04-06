@@ -24,11 +24,14 @@ def sparkle():
     time.sleep(0.01)
     pixels.fill((0,0,0))
     
-def bounceballs(ball, counter, offset):
+def bounceballs():
+    offset = 0
     g = 9.81 # Erdbeschleunigung in m/s^2
     dissipation = 0 # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
                     # Technically this would need to be calculated based on energy approach, but to save us from a sqrt calculation this is just speed based and needs to be adjusted so that visuals look cool. This is no simulation :)
     v0 = 100
+    
+    
     ball.speed = v0 - (g*counter- offset)
     print ("ball speed is {} and ball position is {}".format(ball.speed, int(ball.pos)))
     print("g*counter/10 - offset is {}".format(g*counter/10 - offset))
@@ -51,10 +54,6 @@ class dot:
         
     def updatepos(self):
         self.pos = (self.pos+(self.speed/100))
-        if (self.pos+self.size) > num_pixels:
-            self.pos = 0
-        if self.pos < 0:
-            self.pos = num_pixels-self.size
                     
     # calculating a vector that would be the output to the LED strip if only one instance of this obejct existed
     # If there are other instances, their color layer vectors will be merged in "def show()"
@@ -97,6 +96,10 @@ def lighttrains():
         if counter == timer:
             dots[dotindex].size = randint(2,8)
             dots[dotindex].speed = randint(-100,100)
+            if dots[dotindex].speed >= 0:
+                dots[dotindex].pos = 0 - dots[dotindex].size
+            else:
+                dots[dotindex].pos = num_pixels
             timer = randint(counter+50, counter +200)
             dotindex+=1
             if dotindex >= len(dots):
@@ -104,18 +107,26 @@ def lighttrains():
             print ("timer updated and and dot #{} changed".format(dotindex)) 
         
         output = 0
-        
+          
         # create vector "output" that contains light information for every pixel considering all light objects
         for x in range (len(dots)):
+            # make the dots appear again on the other side of the LED strip once they exceed the LED strip
+            if dots[x].pos > num_pixels:
+               dots[x].pos = 0 - dots[x].size
+            if dots[x].pos < (0-dots[x].size):
+               dots[x].pos = num_pixels
+            else:
+                pass
+           
             dots[x].getlayer()
             output += dots[x].layer
         
         # consider light information from previous calc step to create light trace effect     
         for x in range(len(output)):
             if all(output[x] == 0) and any(outputbefore[x]!= 0):
-                output[x] = outputbefore[x]*0.4
+                output[x] = outputbefore[x]*0.5
         
-        # normalize if resultet color values exceed 255
+        # normalize if resulted color values exceed 255
         for i in range(output.shape[0]):
             m = max(output[i])
             if m >255:
@@ -147,9 +158,8 @@ if __name__ == '__main__':
     try:
                                                
         while True:
-            print("yay, we made it this far")
             lighttrains()
-            print("shit, we left the function")
+
           
 
 
