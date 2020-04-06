@@ -18,6 +18,36 @@ pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=1, auto_write = False
 # A class to "build" light dots. Dots can have a certain position on the LED strip,
 # a size and other attributes
 
+def wheel(pos):
+    # Input a value 0 to 255 to get a color value.
+    # The colours are a transition r - g - b - back to r.
+    if pos < 0 or pos > 255:
+        r = g = b = 0
+    elif pos < 85:
+        r = int(pos * 3)
+        g = int(255 - pos*3)
+        b = 0
+    elif pos < 170:
+        pos -= 85
+        r = int(255 - pos*3)
+        g = 0
+        b = int(pos*3)
+    else:
+        pos -= 170
+        r = 0
+        g = int(pos*3)
+        b = int(255 - pos*3)
+    return (r, g, b) if ORDER == neopixel.RGB or ORDER == neopixel.GRB else (r, g, b, 0)
+
+
+def rainbow(wait):
+    for j in range(255):
+        for i in range(num_pixels):
+            pixel_index = (i * 256 // num_pixels) + j
+            pixels[i] = wheel(pixel_index & 255)
+        pixels.show()
+        time.sleep(wait)
+
 def sparkle():
     pixels[randint(0,num_pixels-1)] = (255,255,160)
     pixels.show()
@@ -203,6 +233,7 @@ if __name__ == '__main__':
                                                
         while True:
             bounceballs()
+            rainbow(0.01)
 
           
 
@@ -213,7 +244,7 @@ if __name__ == '__main__':
               
     # if program is interrupted (e.g. through Ctrl+c), all pixels are turned off        
     except KeyboardInterrupt:
-        turnoff(10)
+        turnoff(50)
         
         
         
