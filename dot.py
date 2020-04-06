@@ -25,23 +25,37 @@ def sparkle():
     pixels.fill((0,0,0))
     
 def bounceballs():
-    offset = 0
+   
+    counter = 0
+    v0 = 300
+    ball = dot(color = [255,0,0], size = 2, pos=0,speed = v0)
     g = 9.81 # Erdbeschleunigung in m/s^2
-    dissipation = 0 # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
+    dissipation = 20 # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
                     # Technically this would need to be calculated based on energy approach, but to save us from a sqrt calculation this is just speed based and needs to be adjusted so that visuals look cool. This is no simulation :)
-    v0 = 100
+    speedatbounce = v0
     
-    
-    ball.speed = v0 - (g*counter- offset)
-    print ("ball speed is {} and ball position is {}".format(ball.speed, int(ball.pos)))
-    print("g*counter/10 - offset is {}".format(g*counter/10 - offset))
-    if int(ball.pos) <= 0 and ball.speed < 0:
-        print("TRUE")
-        ball.speed = -ball.speed
-        v0 = ball.speed
-        offset = g*counter/10
-        return(offset)
-        print("ball.speed ist jetzt {}".format(ball.speed))
+    while True:
+        
+        if int(ball.pos) <= 0 and ball.speed < 0:
+            print("BOUNCE")
+            speedatbounce = - ball.speed * (100 - dissipation)/100
+            counter = 0
+            print("speedatbounce ist jetzt {}".format(speedatbounce))
+            
+        if int(ball.pos) < 1 and abs(ball.speed) < 10:
+            speedatbounce = v0
+            counter = 0
+            ball.pos = (0)
+            print("SHOOT")
+        ball.speed = speedatbounce - (g*counter)
+            
+        print ("ball speed is {} and ball position is {}".format(ball.speed, int(ball.pos)))
+
+        
+        ball.showlayer()
+        
+        counter += 1
+        time.sleep(0.01)
     
 class dot:
     def __init__(self, pos=0, color=[0,0,0], size=0, speed=0):
@@ -66,6 +80,15 @@ class dot:
             else:
                 layer.insert(x,self.color)
         self.layer = np.array(layer)
+     
+    def showlayer(self):
+        self.getlayer()
+        output = self.layer
+        for i in range(num_pixels):
+            pixels[i] = tuple(output[i])
+        pixels.show()
+         
+
 
 # Computes resulting color vector from all color layers and send output to LED strip
 # this replaces the NeoPixel built-in pixels.show() and allows to overlay all effects in this code
@@ -158,7 +181,7 @@ if __name__ == '__main__':
     try:
                                                
         while True:
-            lighttrains()
+            bounceballs()
 
           
 
