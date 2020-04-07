@@ -52,8 +52,78 @@ def sine():
         time.sleep(0.01)
         
 def kit():
-    light = [dot(color = [255,0,0], size = 7, speed = 10, pos = 0)]
-    showdots(light)
+    
+    speed = 30
+    
+    dots=[dot(color = [255,0,0], size = 6, speed = speed, pos = 0),
+          dot(color = [60,0,0], size = 6, speed = speed, pos = -1),
+          dot(color = [40,0,0], size = 6, speed = speed, pos = -2),
+          dot(color = [25,0,0], size = 6, speed = speed, pos = -3),
+          dot(color = [18,0,0], size = 6, speed = speed, pos = -4),
+          dot(color = [10,0,0], size = 6, speed = speed, pos = -5),
+          dot(color = [8,0,0], size = 6, speed = speed, pos = -6),
+          dot(color = [2,0,0], size = 6, speed = speed, pos = -7),
+          dot(color = [1,0,0], size = 6, speed = speed, pos = -8)]
+    
+    holdtimer = len(dots)*[0]
+    holdtime = speed/3
+          
+    while True:
+        showdots(dots)
+        
+        for x in range(len(dots)):
+            if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer[x]< holdtime:
+                dots[x].speed = 0
+                holdtimer[x] +=1
+            if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer[x] >= holdtime:
+                dots[x].speed = -speed
+                holdtimer[x] = 0
+                
+            if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer[x] < holdtime:
+                dots[x].speed = 0
+                holdtimer[x] +=1
+            if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer[x] >= holdtime:
+                dots[x].speed = speed
+                holdtimer[x] = 0
+                
+        time.sleep(0.01)
+            
+def confusedkit():
+    
+    dots=[dot(color = [255,0,0], size = 5, speed = 20, pos = 0),
+          dot(color = [70,0,0], size = 5, speed = 20, pos = -1),
+          dot(color = [50,0,0], size = 5, speed = 20, pos = -2),
+          dot(color = [20,0,0], size = 5, speed = 20, pos = -3),
+          dot(color = [8,0,0], size = 5, speed = 20, pos = -4),
+          dot(color = [6,0,0], size = 5, speed = 20, pos = -5),
+          dot(color = [4,0,0], size = 5, speed = 20, pos = -6),
+          dot(color = [2,0,0], size = 5, speed = 20, pos = -7),
+          dot(color = [1,0,0], size = 5, speed = 20, pos = -8)]
+    
+    holdtimer = 0
+
+          
+    while True:
+        showdots(dots)
+        
+        for x in range(len(dots)):
+            if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer<100:
+                dots[x].speed = 0
+                holdtimer +=1
+                print(holdtimer)
+            if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer >= 100:
+                dots[x].speed = -20
+                holdtimer = 0
+                
+            if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer <100:
+                dots[x].speed = 0
+                holdtimer +=1
+            if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer >= 100:
+                dots[x].speed = 20
+                holdtimer = 0 
+
+
+
              
 def rainbow(wait):
     for j in range(255):
@@ -253,9 +323,11 @@ if __name__ == '__main__':
     print("Press Ctrl+c to turn off LEDs and exit")
     
     try:
-        test = [dot(color = [255,0,0], size = 3, pos =0, speed = 6)]
+        test = [dot(color = [0,0,255], size = 3, pos =0, speed = 6)]
                                                
         while True:
+#             showdots(test)
+            
             kit()
             
 #             rainbow(0.01)
