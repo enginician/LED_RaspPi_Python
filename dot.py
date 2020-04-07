@@ -57,22 +57,22 @@ def sparkle():
 def bounceballs():
    
     counter = [0,0,0,0,0,0]
-    v0 = [400, 400, 400, 400, 400, 400]
+    v0 = [300, 300, 300, 300, 300, 300]
     balls = [dot(color = [255,0,0], size = 2, pos=0,speed = v0[0]),
              dot(color = [0,255,0], size = 2, pos=0,speed = v0[1]),
              dot(color = [0,0,255], size = 2, pos=0,speed = v0[2]),
              dot(color = [255,255,0], size = 2, pos=0,speed = v0[3]),
              dot(color = [0,255,255], size = 2, pos=0,speed = v0[4]),
              dot(color = [255,0,255], size = 2, pos=0,speed = v0[5])]
-    g = 9.81 # Erdbeschleunigung in m/s^2
-    dissipation = [12, 20, 25, 30, 10, 5] # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
+    g = 7 # Erdbeschleunigung in m/s^2
+    dissipation = [15, 20, 25, 30, 10, 5] # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
                     # Technically this would need to be calculated based on energy approach, but to save us from a sqrt calculation this is just speed based and needs to be adjusted so that visuals look cool. This is no simulation :)
     speedatbounce = [v0[0],v0[1], v0[2], v0[3], v0[4], v0[5]]
     
     while True:
         
         output = 0
-        
+
         for x in range (len(balls)):
            
             if int(balls[x].pos) <= 0 and balls[x].speed < 0:
@@ -88,13 +88,13 @@ def bounceballs():
                 print("SHOOT")
             print("x ist {}, speedatbounce[x] ist {}, g ist {} und counter[x] ist {}".format(x, speedatbounce[x], g, counter[x]) )  
             balls[x].speed = speedatbounce[x]-(g*counter[x])  
-            print ("ball speed is {} and ball position is {}".format(balls[x].speed, int(balls[x].pos)))        
+            print ("ball speed is {} and ball position is {}".format(balls[x].speed, balls[x].pos))        
             counter[x] +=1
             
         showdots(balls)
-        time.sleep(0.01)
-        if randint(0,400) == 0:
-            return
+        time.sleep(0.001)
+#         if randint(0,4000) == 0:
+#             return
 
     
 class dot:
@@ -118,25 +118,24 @@ class dot:
             if x < int(self.pos) or x > (int(self.pos)+self.size):
                 layer.insert(x, [0,0,0])
             elif x == int(self.pos):
-                layer.insert(x, [int(i * (1-(self.pos-int(self.pos)))**3) for i in self.color])
+                layer.insert(x, [int(i * (1-(abs(self.pos-int(self.pos))))**3) for i in self.color])
             elif x == (int(self.pos) + self.size):
-                layer.insert(x, [int(i * (self.pos-int(self.pos))**3) for i in self.color])
+                layer.insert(x, [int(i * (abs(self.pos-int(self.pos)))**3) for i in self.color])
             else:
                 layer.insert(x,self.color)
+
         self.layer = np.array(layer)
          
 def showdots(dots):
     output = 0
     for x in range(len(dots)):
         dots[x].getlayer()
-        output += dots[x].layer
-                 
+        output += dots[x].layer       
         # normalize if resulted color values exceed 255
         for i in range(output.shape[0]):
             m = max(output[i])
             if m >255:
-                output[i] = [int(i/(m/255)) for i in output[i]]
-                    
+                output[i] = [int(i/(m/255)) for i in output[i]]           
         for i in range(num_pixels):
             pixels[i] = tuple(output[i])
                 
@@ -147,9 +146,10 @@ def showdots(dots):
 # this replaces the NeoPixel built-in pixels.show() and allows to overlay all effects in this code
 def lighttrains():
     
-    dots=[dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255]),
-        dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255]),
-        dot(color=[255,0,0]),dot(color=[0,255,0]),dot(color =[0,0,255])]
+    dots=[dot(color=[255,0,0], speed = 5),dot(color=[0,255,0], speed =2),
+          dot(color =[0,0,255], speed = 1), dot(color=[255,0,0], speed = 10),
+          dot(color=[0,255,0], speed = -8),dot(color =[0,0,255], speed = -3),
+        dot(color=[255,0,0], speed = -10),dot(color=[0,255,0], speed =-5)]
         
     counter = 0 #timing counter to synchronize actions
     dotcounter = 0 # initialize counter that counts number of instances of LED dots
@@ -216,7 +216,7 @@ def lighttrains():
         # leave a light trace behind moving light objects
         outputbefore = output
         
-        time.sleep(0.01)
+        time.sleep(0.001)
         counter+=1
 
 # Define functions which turns off LEDs when code is interrupted.
@@ -232,10 +232,11 @@ if __name__ == '__main__':
     print("Press Ctrl+c to turn off LEDs and exit")
     
     try:
-        test = [dot(color = [255,0,0], size = 3, pos =0, speed = 100)]
+#         test = [dot(color = [255,0,0], size = 3, pos =0, speed = 100)]
                                                
         while True:
 
+            
             bounceballs()
 #             rainbow(0.01)
 #             rainbow(0.009)
