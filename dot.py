@@ -56,7 +56,8 @@ def sparkle():
     
 def bounceballs():
    
-    counter = [0,0,0,0,0,0]
+    t0 = [time.time,time.time,time.time,time.time,time.time,time.time]
+    time = 6*[time]
     v0 = [300, 300, 300, 300, 300, 300]
     balls = [dot(color = [255,0,0], size = 2, pos=0,speed = v0[0]),
              dot(color = [0,255,0], size = 2, pos=0,speed = v0[1]),
@@ -74,22 +75,24 @@ def bounceballs():
         output = 0
 
         for x in range (len(balls)):
+            
+            t[x] = time[x] - t0[x]
            
             if int(balls[x].pos) <= 0 and balls[x].speed < 0:
                 print("BOUNCE")
                 speedatbounce[x] = - balls[x].speed * (100 - dissipation[x])/100 - 2
-                counter[x] = 0
+                t0[x] = time.time
                 print("speedatbounce fuer {} ist jetzt {}".format(x,speedatbounce[x]))
                 
             if int(balls[x].pos) < 1 and abs(balls[x].speed) < 10:
                 speedatbounce[x] = v0[x]
-                counter[x] = 0
+                t0[x] = time.time
                 balls[x].pos = 0
                 print("SHOOT")
             print("x ist {}, speedatbounce[x] ist {}, g ist {} und counter[x] ist {}".format(x, speedatbounce[x], g, counter[x]) )  
-            balls[x].speed = speedatbounce[x]-(g*counter[x])  
+            balls[x].speed = speedatbounce[x]-(g*t[x])  
             print ("ball speed is {} and ball position is {}".format(balls[x].speed, balls[x].pos))        
-            counter[x] +=1
+
             
         showdots(balls)
         time.sleep(0.001)
