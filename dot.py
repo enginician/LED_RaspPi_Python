@@ -3,15 +3,17 @@ import board
 import neopixel
 import numpy as np
 import random
+import math
 #from random import seed
 from random import randint
 #seed(1)
 
 LED_pin = board.D18 # Choose an open pin connected to the Data In of the NeoPixel strip, i.e. board.D18. NeoPixels must be connected to D10, D12, D18 or D21 to work.
 num_pixels = 60 # The number of NeoPixels
+length_strip = 1 # length of LED strip in m
 ORDER = neopixel.GRB # The order of the pixel colors - RGB or GRB. Some NeoPixels have red and green reversed! For RGBW NeoPixels, simply change the ORDER to RGBW or GRBW.
 
-pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=1, auto_write = False, pixel_order = ORDER)
+pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=0.3, auto_write = False, pixel_order = ORDER)
 # Select the max brightnee as afloat from 0.0 to 1.0
 # See Neopixel Python library documentation for further details: https://circuitpython.readthedocs.io/projects/neopixel/en/latest/api.html
 
@@ -39,7 +41,20 @@ def wheel(pos):
         b = int(255 - pos*3)
     return (r, g, b) if ORDER == neopixel.RGB or ORDER == neopixel.GRB else (r, g, b, 0)
 
-
+def sine():
+    j = 0
+    while True:
+        
+        for i in range(num_pixels):
+            pixels[i] = (int(abs(128 *(math.sin(i+j))+127)), 0, 0)    
+        pixels.show()
+        j +=0.1
+        time.sleep(0.01)
+        
+def kit():
+    light = [dot(color = [255,0,0], size = 7, speed = 10, pos = 0)]
+    showdots(light)
+             
 def rainbow(wait):
     for j in range(255):
         for i in range(num_pixels):
@@ -54,48 +69,47 @@ def sparkle():
     time.sleep(0.05)
     pixels.fill((0,0,0))
     
-def bounceballs():
-   
-    t0 = [time.time,time.time,time.time,time.time,time.time,time.time]
-    time = 6*[time]
-    v0 = [300, 300, 300, 300, 300, 300]
+def bounceballs(): # numballs is 12 max
+    
+    t0 = 6*[time.time()]
+    t = 6*[0]
+    v0 = 6*[180]
     balls = [dot(color = [255,0,0], size = 2, pos=0,speed = v0[0]),
              dot(color = [0,255,0], size = 2, pos=0,speed = v0[1]),
-             dot(color = [0,0,255], size = 2, pos=0,speed = v0[2]),
-             dot(color = [255,255,0], size = 2, pos=0,speed = v0[3]),
-             dot(color = [0,255,255], size = 2, pos=0,speed = v0[4]),
-             dot(color = [255,0,255], size = 2, pos=0,speed = v0[5])]
-    g = 7 # Erdbeschleunigung in m/s^2
-    dissipation = [15, 20, 25, 30, 10, 5] # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
+             dot(color = [0,0,255], size = 2, pos=0,speed = v0[2])]
+#              dot(color = [255,255,0], size = 2, pos=0,speed = v0[3]),
+#              dot(color = [0,255,255], size = 2, pos=0,speed = v0[4]),
+#              dot(color = [255,0,255], size = 2, pos=0,speed = v0[5])]
+
+    g = 5 * num_pixels/ length_strip # Erdbeschleunigung in pixel/s^2
+    dissipation = [40, 35, 30, 25, 20, 15] # factor in percent of how much of speed is lost due to dissipation energy when the ball bounces
                     # Technically this would need to be calculated based on energy approach, but to save us from a sqrt calculation this is just speed based and needs to be adjusted so that visuals look cool. This is no simulation :)
-    speedatbounce = [v0[0],v0[1], v0[2], v0[3], v0[4], v0[5]]
+    speedatbounce = 6*[v0[0]]
     
     while True:
         
         output = 0
-
         for x in range (len(balls)):
             
-            t[x] = time[x] - t0[x]
+            t[x] = time.time()- t0[x]
            
             if int(balls[x].pos) <= 0 and balls[x].speed < 0:
-                print("BOUNCE")
+#                 print("BOUNCE")
                 speedatbounce[x] = - balls[x].speed * (100 - dissipation[x])/100 - 2
-                t0[x] = time.time
-                print("speedatbounce fuer {} ist jetzt {}".format(x,speedatbounce[x]))
+                t0[x] = time.time()
+#                 print("speedatbounce fuer {} ist jetzt {}".format(x,speedatbounce[x]))
                 
             if int(balls[x].pos) < 1 and abs(balls[x].speed) < 10:
                 speedatbounce[x] = v0[x]
-                t0[x] = time.time
+                t0[x] = time.time()
                 balls[x].pos = 0
-                print("SHOOT")
-            print("x ist {}, speedatbounce[x] ist {}, g ist {} und counter[x] ist {}".format(x, speedatbounce[x], g, counter[x]) )  
+#                 print("SHOOT")
+#             print("x ist {}, speedatbounce[x] ist {}, g ist {} und t ist {}".format(x, speedatbounce[x], g, t[x]) )  
             balls[x].speed = speedatbounce[x]-(g*t[x])  
-            print ("ball speed is {} and ball position is {}".format(balls[x].speed, balls[x].pos))        
+#             print ("ball speed is {} and ball position is {}".format(balls[x].speed, balls[x].pos))        
 
             
         showdots(balls)
-        time.sleep(0.001)
 #         if randint(0,4000) == 0:
 #             return
 
@@ -108,9 +122,13 @@ class dot:
         self.pos = pos
         self.layer = np.array([])
         self.speed = speed #in pixel/second
+        self.timestamp = time.time() #timestamp used for each object to properly calculate speed
         
     def updatepos(self):
-        self.pos = (self.pos+(self.speed/100))
+
+        deltat = time.time() - self.timestamp
+        self.pos = (self.pos+(self.speed*deltat))
+        self.timestamp = time.time()
                     
     # calculating a vector that would be the output to the LED strip if only one instance of this obejct existed
     # If there are other instances, their color layer vectors will be merged in "def show()"
@@ -235,12 +253,11 @@ if __name__ == '__main__':
     print("Press Ctrl+c to turn off LEDs and exit")
     
     try:
-#         test = [dot(color = [255,0,0], size = 3, pos =0, speed = 100)]
+        test = [dot(color = [255,0,0], size = 3, pos =0, speed = 6)]
                                                
         while True:
-
+            kit()
             
-            bounceballs()
 #             rainbow(0.01)
 #             rainbow(0.009)
 #             rainbow(0.008)
