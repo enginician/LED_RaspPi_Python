@@ -91,20 +91,10 @@ def bounceballs():
             print ("ball speed is {} and ball position is {}".format(balls[x].speed, int(balls[x].pos)))        
             counter[x] +=1
             
-            balls[x].getlayer()
-            output += balls[x].layer
-                 
-            # normalize if resulted color values exceed 255
-            for i in range(output.shape[0]):
-                m = max(output[i])
-                if m >255:
-                    output[i] = [int(i/(m/255)) for i in output[i]]
-                    
-            for i in range(num_pixels):
-                pixels[i] = tuple(output[i])
-                
-        pixels.show()
-        time.sleep(0.01) 
+        showdots(balls)
+        time.sleep(0.01)
+        if randint(0,400) == 0:
+            return
 
     
 class dot:
@@ -125,21 +115,33 @@ class dot:
         self.updatepos()
         layer = []
         for x in range(num_pixels):
-            if x < int(self.pos) or x >= (int(self.pos)+self.size):
-                layer.insert(x, [0,0,0])           
+            if x < int(self.pos) or x > (int(self.pos)+self.size):
+                layer.insert(x, [0,0,0])
+            elif x == int(self.pos):
+                layer.insert(x, [int(i * (1-(self.pos-int(self.pos)))**3) for i in self.color])
+            elif x == (int(self.pos) + self.size):
+                layer.insert(x, [int(i * (self.pos-int(self.pos))**3) for i in self.color])
             else:
                 layer.insert(x,self.color)
         self.layer = np.array(layer)
-     
-    def showlayer(self):     
-        
-        self.getlayer()
-        output = self.layer
+         
+def showdots(dots):
+    output = 0
+    for x in range(len(dots)):
+        dots[x].getlayer()
+        output += dots[x].layer
+                 
+        # normalize if resulted color values exceed 255
+        for i in range(output.shape[0]):
+            m = max(output[i])
+            if m >255:
+                output[i] = [int(i/(m/255)) for i in output[i]]
+                    
         for i in range(num_pixels):
             pixels[i] = tuple(output[i])
-        pixels.show()
-         
-
+                
+    pixels.show()
+    
 
 # Computes resulting color vector from all color layers and send output to LED strip
 # this replaces the NeoPixel built-in pixels.show() and allows to overlay all effects in this code
@@ -230,21 +232,35 @@ if __name__ == '__main__':
     print("Press Ctrl+c to turn off LEDs and exit")
     
     try:
+        test = [dot(color = [255,0,0], size = 3, pos =0, speed = 100)]
                                                
         while True:
+
             bounceballs()
-            rainbow(0.01)
-
-          
-
-
-
-
+#             rainbow(0.01)
+#             rainbow(0.009)
+#             rainbow(0.008)
+#             rainbow(0.007)
+#             rainbow(0.006)
+#             rainbow(0.005)
+#             rainbow(0.004)
+#             rainbow(0.003)
+#             rainbow(0.002)
+#             rainbow(0.001)
+#             rainbow(0.001)
+#             rainbow(0.001)
+#             rainbow(0.001)
+#             rainbow(0.001)
+#             rainbow(0.001)
+#             rainbow(0.001)
+#             rainbow(0.001)
+#             rainbow(0.001)
+#             rainbow(0.001)
 
               
     # if program is interrupted (e.g. through Ctrl+c), all pixels are turned off        
     except KeyboardInterrupt:
-        turnoff(50)
+        turnoff(20)
         
         
         
