@@ -51,12 +51,12 @@ def sine():
         j +=0.1
         time.sleep(0.01)
         
-def kit():
+def kitt():
     
-    speed = 10
+    speed = 20
     length = 2
     taillength = 8
-    holdtime = 6*speed
+    holdtime = 5   # holdtime in seconds. Determines, how long light dot remains at end of LED strip
     
     dots = [dot(color = [255,0,0], size = length, speed = speed, pos = 0),
           dot(color = [60,0,0], size = length, speed = 0, pos = -1),
@@ -68,7 +68,9 @@ def kit():
           dot(color = [2,0,0], size = length, speed = 0, pos = -7),
           dot(color = [1,0,0], size = length, speed = 0, pos = -8)]
     
+    
     holdtimer = 0
+    toggle = True
           
     while True:
         showdots(dots)
@@ -76,21 +78,28 @@ def kit():
         for x in range(taillength):
             if x == 0:
                 # when head arrives at end, stop head
-                if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer< holdtime:
+                if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and toggle == True:
+                    dots[x].resetdeltatime()
+                    holdtimer = dots[x].getdeltatime()
                     dots[x].speed = 0
-                    holdtimer +=1
+                    toggle = False
+
                 # after hold time is up, change dirextion of head 
                 if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer >= holdtime:
                     dots[x].speed = -speed
-                    holdtimer = 0
+                    toggle = True
+                    
                 # when head arruves at beginning again, stop head    
-                if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer < holdtime:
+                if (dots[x].pos < 0 and dots[x].speed <= 0) and toggle == True:
+                    dots[x].resetdeltatime()
+                    holdtimer = dots[x].getdeltatime()
                     dots[x].speed = 0
-                    holdtimer +=1
+                    toggle = False
+
                 # after hold time is up, change direction of head   
                 if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer >= holdtime:
                     dots[x].speed = speed
-                    holdtimer = 0
+                    toggle = True
                     
             else:
                 
@@ -114,10 +123,13 @@ def kit():
                 else:
                     print("Well, I guess we forgot to consider a case here. Fix this bug!")
                     
+            holdtimer = dots[0].getdeltatime()
+            if x == 0:
+                print(holdtimer)
 
         
             
-def confusedkit():
+def confusedkitt():
     
     dots=[dot(color = [255,0,0], size = 5, speed = 20, pos = 0),
           dot(color = [70,0,0], size = 5, speed = 20, pos = -1),
@@ -222,13 +234,21 @@ class dot:
         self.layer = np.array([])
         self.speed = speed #in pixel/second
         self.timestamp = time.time() #timestamp used for each object to properly calculate speed
-    
+        self.timestamp_ext = time.time() # time stamp for time dependant effects to be independant of execution time 
+                              
     # update object position based on object speed:
     def updatepos(self):
-
         deltat = time.time() - self.timestamp
         self.pos = (self.pos+(self.speed*deltat))
         self.timestamp = time.time()
+        
+    # provides deltatime for time from last resetdeltatime() request request   
+    def getdeltatime (self):
+        self.deltatime = time.time() - self.timestamp_ext
+        return self.deltatime
+
+    def resetdeltatime (self):
+        self.timestamp_ext = time.time()
                     
     # calculating a vector that would be the output to the LED strip if only one instance of this obejct existed
     # If there are other instances, their color layer vectors will be merged in "def show()"
@@ -358,7 +378,7 @@ if __name__ == '__main__':
         while True:
 #             showdots(test)
             
-            kit()
+            kitt()
             
 #             rainbow(0.01)
 #             rainbow(0.009)
