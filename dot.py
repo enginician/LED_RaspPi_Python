@@ -53,20 +53,20 @@ def sine():
         
 def kitt():
     
-    speed = 20
-    length = 2
-    taillength = 8
-    holdtime = 5   # holdtime in seconds. Determines, how long light dot remains at end of LED strip
+    speed = 50
+    size = 3
+    taillength = 7
+    holdtime = taillength/speed   # holdtime in seconds. Determines, how long light dot remains at end of LED strip
     
-    dots = [dot(color = [255,0,0], size = length, speed = speed, pos = 0),
-          dot(color = [60,0,0], size = length, speed = 0, pos = -1),
-          dot(color = [40,0,0], size = length, speed = 0, pos = -2),
-          dot(color = [25,0,0], size = length, speed = 0, pos = -3),
-          dot(color = [18,0,0], size = length, speed = 0, pos = -4),
-          dot(color = [10,0,0], size = length, speed = 0, pos = -5),
-          dot(color = [8,0,0], size = length, speed = 0, pos = -6),
-          dot(color = [2,0,0], size = length, speed = 0, pos = -7),
-          dot(color = [1,0,0], size = length, speed = 0, pos = -8)]
+    dots = [dot(color = [255,0,0], size = size, speed = speed, pos = 0),
+          dot(color = [80,0,0], size = size, speed = 0, pos = -1),
+          dot(color = [50,0,0], size = size, speed = 0, pos = -2),
+          dot(color = [35,0,0], size = size, speed = 0, pos = -3),
+          dot(color = [25,0,0], size = size, speed = 0, pos = -4),
+          dot(color = [15,0,0], size = size, speed = 0, pos = -5),
+          dot(color = [10,0,0], size = size, speed = 0, pos = -6),
+          dot(color = [5,0,0], size = size, speed = 0, pos = -7),
+          dot(color = [5,0,0], size = size, speed = 0, pos = -8)]
     
     
     holdtimer = 0
@@ -75,7 +75,7 @@ def kitt():
     while True:
         showdots(dots)
         
-        for x in range(taillength):
+        for x in range(taillength+1):
             if x == 0:
                 # when head arrives at end, stop head
                 if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and toggle == True:
@@ -124,22 +124,20 @@ def kitt():
                     print("Well, I guess we forgot to consider a case here. Fix this bug!")
                     
             holdtimer = dots[0].getdeltatime()
-            if x == 0:
-                print(holdtimer)
 
         
             
 def confusedkitt():
     
-    dots=[dot(color = [255,0,0], size = 5, speed = 20, pos = 0),
-          dot(color = [70,0,0], size = 5, speed = 20, pos = -1),
-          dot(color = [50,0,0], size = 5, speed = 20, pos = -2),
-          dot(color = [20,0,0], size = 5, speed = 20, pos = -3),
-          dot(color = [8,0,0], size = 5, speed = 20, pos = -4),
-          dot(color = [6,0,0], size = 5, speed = 20, pos = -5),
-          dot(color = [4,0,0], size = 5, speed = 20, pos = -6),
-          dot(color = [2,0,0], size = 5, speed = 20, pos = -7),
-          dot(color = [1,0,0], size = 5, speed = 20, pos = -8)]
+    dots=[dot(color = [255,0,0], size = 5, speed = 40, pos = 0),
+          dot(color = [70,0,0], size = 5, speed = 40, pos = -1),
+          dot(color = [50,0,0], size = 5, speed = 40, pos = -2),
+          dot(color = [20,0,0], size = 5, speed = 40, pos = -3),
+          dot(color = [8,0,0], size = 5, speed = 40, pos = -4),
+          dot(color = [6,0,0], size = 5, speed = 40, pos = -5),
+          dot(color = [4,0,0], size = 5, speed = 40, pos = -6),
+          dot(color = [2,0,0], size = 5, speed = 40, pos = -7),
+          dot(color = [1,0,0], size = 5, speed = 40, pos = -8)]
     
     holdtimer = 0
 
@@ -377,8 +375,8 @@ if __name__ == '__main__':
                                                
         while True:
 #             showdots(test)
-            
-            kitt()
+#             bounceballs()
+            confusedkitt()
             
 #             rainbow(0.01)
 #             rainbow(0.009)
@@ -403,7 +401,9 @@ if __name__ == '__main__':
               
     # if program is interrupted (e.g. through Ctrl+c), all pixels are turned off        
     except KeyboardInterrupt:
+        rainbow(0.0001)
         turnoff(20)
+        
         
         
         
