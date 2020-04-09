@@ -53,40 +53,69 @@ def sine():
         
 def kit():
     
-    speed = 30
+    speed = 10
+    length = 2
+    taillength = 8
+    holdtime = 6*speed
     
-    dots=[dot(color = [255,0,0], size = 6, speed = speed, pos = 0),
-          dot(color = [60,0,0], size = 6, speed = speed, pos = -1),
-          dot(color = [40,0,0], size = 6, speed = speed, pos = -2),
-          dot(color = [25,0,0], size = 6, speed = speed, pos = -3),
-          dot(color = [18,0,0], size = 6, speed = speed, pos = -4),
-          dot(color = [10,0,0], size = 6, speed = speed, pos = -5),
-          dot(color = [8,0,0], size = 6, speed = speed, pos = -6),
-          dot(color = [2,0,0], size = 6, speed = speed, pos = -7),
-          dot(color = [1,0,0], size = 6, speed = speed, pos = -8)]
+    dots = [dot(color = [255,0,0], size = length, speed = speed, pos = 0),
+          dot(color = [60,0,0], size = length, speed = 0, pos = -1),
+          dot(color = [40,0,0], size = length, speed = 0, pos = -2),
+          dot(color = [25,0,0], size = length, speed = 0, pos = -3),
+          dot(color = [18,0,0], size = length, speed = 0, pos = -4),
+          dot(color = [10,0,0], size = length, speed = 0, pos = -5),
+          dot(color = [8,0,0], size = length, speed = 0, pos = -6),
+          dot(color = [2,0,0], size = length, speed = 0, pos = -7),
+          dot(color = [1,0,0], size = length, speed = 0, pos = -8)]
     
-    holdtimer = len(dots)*[0]
-    holdtime = speed/3
+    holdtimer = 0
           
     while True:
         showdots(dots)
         
-        for x in range(len(dots)):
-            if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer[x]< holdtime:
-                dots[x].speed = 0
-                holdtimer[x] +=1
-            if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer[x] >= holdtime:
-                dots[x].speed = -speed
-                holdtimer[x] = 0
+        for x in range(taillength):
+            if x == 0:
+                # when head arrives at end, stop head
+                if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer< holdtime:
+                    dots[x].speed = 0
+                    holdtimer +=1
+                # after hold time is up, change dirextion of head 
+                if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer >= holdtime:
+                    dots[x].speed = -speed
+                    holdtimer = 0
+                # when head arruves at beginning again, stop head    
+                if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer < holdtime:
+                    dots[x].speed = 0
+                    holdtimer +=1
+                # after hold time is up, change direction of head   
+                if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer >= holdtime:
+                    dots[x].speed = speed
+                    holdtimer = 0
+                    
+            else:
                 
-            if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer[x] < holdtime:
-                dots[x].speed = 0
-                holdtimer[x] +=1
-            if (dots[x].pos < 0 and dots[x].speed <= 0) and holdtimer[x] >= holdtime:
-                dots[x].speed = speed
-                holdtimer[x] = 0
+                # when head moves up, position tail behind head
+                if dots[0].speed > 0:
+                    dots[x].speed = 0
+                    dots[x].pos = dots[0].pos -x
                 
-        time.sleep(0.01)
+                # when head moves down, position tail behind head
+                elif dots[0].speed < 0:
+                    dots[x].speed  = 0
+                    dots[x].pos = dots[0].pos +x
+                    
+                elif dots[0].speed == 0 and dots[0].pos > num_pixels/2:
+                    dots[x].speed = speed
+                    
+                    
+                elif dots[0].speed == 0 and dots[0].pos < num_pixels/2:
+                    dots[x].speed = -speed
+                    
+                else:
+                    print("Well, I guess we forgot to consider a case here. Fix this bug!")
+                    
+
+        
             
 def confusedkit():
     
@@ -193,7 +222,8 @@ class dot:
         self.layer = np.array([])
         self.speed = speed #in pixel/second
         self.timestamp = time.time() #timestamp used for each object to properly calculate speed
-        
+    
+    # update object position based on object speed:
     def updatepos(self):
 
         deltat = time.time() - self.timestamp
