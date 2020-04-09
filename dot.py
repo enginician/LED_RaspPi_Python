@@ -401,7 +401,7 @@ if __name__ == '__main__':
               
     # if program is interrupted (e.g. through Ctrl+c), all pixels are turned off        
     except KeyboardInterrupt:
-        rainbow(0.0001)
+        rainbow(4)
         turnoff(20)
         
         
