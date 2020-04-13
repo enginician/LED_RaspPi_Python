@@ -4,6 +4,7 @@ import neopixel
 import numpy as np
 import random
 import math
+import curses
 #from random import seed
 from random import randint
 #seed(1)
@@ -20,26 +21,8 @@ pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=0.3, auto_write = Fal
 # A class to "build" light dots. Dots can have a certain position on the LED strip,
 # a size and other attributes
 
-def wheel(pos):
-    # Input a value 0 to 255 to get a color value.
-    # The colours are a transition r - g - b - back to r.
-    if pos < 0 or pos > 255:
-        r = g = b = 0
-    elif pos < 85:
-        r = int(pos * 3)
-        g = int(255 - pos*3)
-        b = 0
-    elif pos < 170:
-        pos -= 85
-        r = int(255 - pos*3)
-        g = 0
-        b = int(pos*3)
-    else:
-        pos -= 170
-        r = 0
-        g = int(pos*3)
-        b = int(255 - pos*3)
-    return (r, g, b) if ORDER == neopixel.RGB or ORDER == neopixel.GRB else (r, g, b, 0)
+stdscr = curses.initscr()
+curses.noecho()
 
 def sine():
     j = 0
@@ -113,15 +96,17 @@ def kitt():
                     dots[x].speed  = 0
                     dots[x].pos = dots[0].pos +x
                     
+                # when head is still, make tails keep moving
                 elif dots[0].speed == 0 and dots[0].pos > num_pixels/2:
                     dots[x].speed = speed
                     
-                    
+                # when head is still, make tails keep moving    
                 elif dots[0].speed == 0 and dots[0].pos < num_pixels/2:
                     dots[x].speed = -speed
                     
                 else:
                     print("Well, I guess we forgot to consider a case here. Fix this bug!")
+                    
                     
             holdtimer = dots[0].getdeltatime()
 
@@ -171,6 +156,27 @@ def rainbow(wait):
             pixels[i] = wheel(pixel_index & 255)
         pixels.show()
         time.sleep(wait)
+        
+def wheel(pos):
+    # Input a value 0 to 255 to get a color value.
+    # The colours are a transition r - g - b - back to r.
+    if pos < 0 or pos > 255:
+        r = g = b = 0
+    elif pos < 85:
+        r = int(pos * 3)
+        g = int(255 - pos*3)
+        b = 0
+    elif pos < 170:
+        pos -= 85
+        r = int(255 - pos*3)
+        g = 0
+        b = int(pos*3)
+    else:
+        pos -= 170
+        r = 0
+        g = int(pos*3)
+        b = int(255 - pos*3)
+    return (r, g, b) if ORDER == neopixel.RGB or ORDER == neopixel.GRB else (r, g, b, 0)
 
 def sparkle():
     pixels[randint(0,num_pixels-1)] = (255,255,160)
@@ -357,6 +363,14 @@ def lighttrains():
         
         time.sleep(0.001)
         counter+=1
+        
+def strobo(cycle):
+    pixels.fill((255,255,255))
+    pixels.show()
+    time.sleep(cycle*(1/10))
+    pixels.fill((0,0,0))
+    pixels.show()
+    time.sleep(cycle/(9/10))
 
 # Define functions which turns off LEDs when code is interrupted.
 def turnoff(wait_ms):
@@ -372,11 +386,23 @@ if __name__ == '__main__':
     
     try:
         test = [dot(color = [0,0,255], size = 3, pos =0, speed = 6)]
+        k = 0
                                                
         while True:
+            
+            stdscr.refresh()
+            k = stdscr.getkey()
+            print(k)
+            
+            if k == "k":
+                kitt()
+            
+#             strobo(0.05)
 #             showdots(test)
 #             bounceballs()
-            confusedkitt()
+#             rainbow(0.1)
+#             confusedkitt()
+#             kitt()
             
 #             rainbow(0.01)
 #             rainbow(0.009)
@@ -401,7 +427,6 @@ if __name__ == '__main__':
               
     # if program is interrupted (e.g. through Ctrl+c), all pixels are turned off        
     except KeyboardInterrupt:
-        rainbow(4)
         turnoff(20)
         
         
