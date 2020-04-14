@@ -4,7 +4,7 @@ import neopixel
 import numpy as np
 import random
 import math
-import curses
+from threading import Thread, Lock
 #from random import seed
 from random import randint
 #seed(1)
@@ -21,8 +21,13 @@ pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=0.3, auto_write = Fal
 # A class to "build" light dots. Dots can have a certain position on the LED strip,
 # a size and other attributes
 
-stdscr = curses.initscr()
-curses.noecho()
+# class to pass around global state for threading
+class globalVars():
+    pass
+
+G = globalVars()
+G.lock = Lock()
+G.kill = False
 
 def sine():
     j = 0
@@ -40,6 +45,7 @@ def kitt():
     size = 3
     taillength = 7
     holdtime = taillength/speed   # holdtime in seconds. Determines, how long light dot remains at end of LED strip
+    k = "0"
     
     dots = [dot(color = [255,0,0], size = size, speed = speed, pos = 0),
           dot(color = [80,0,0], size = size, speed = 0, pos = -1),
@@ -56,6 +62,12 @@ def kitt():
     toggle = True
           
     while True:
+        
+        # make function threading capable:
+        if G.kill:
+            G.jill = False
+            return        
+        
         showdots(dots)
         
         for x in range(taillength+1):
@@ -110,7 +122,7 @@ def kitt():
                     
             holdtimer = dots[0].getdeltatime()
 
-        
+
             
 def confusedkitt():
     
@@ -202,6 +214,11 @@ def bounceballs(): # numballs is 12 max
     speedatbounce = 6*[v0[0]]
     
     while True:
+        
+        # make function threading capable:
+        if G.kill:
+            G.jill = False
+            return 
         
         output = 0
         for x in range (len(balls)):
@@ -374,60 +391,66 @@ def strobo(cycle):
 
 # Define functions which turns off LEDs when code is interrupted.
 def turnoff(wait_ms):
+
     """Wipe color across display a pixel at a time."""
     for i in range(num_pixels):
         pixels[i] = (0,0,0)
         pixels.show()
         time.sleep(wait_ms/1000.0)
+        
+def cursestest():
+    print("in the function now ")
+    for i in range(500):
+        k = stdscr.getkey()
+        time.sleep(0.01)
+        print(i)
+    print("function finished ")
+    
+def askinput():
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    choice = input("1: kitt\n2: bounceballs\n3: Licht aus!\ninput: ")
+    
+    if choice == "1":
+        G.kill = True
+        time.sleep(0.1)
+        G.kill = False
+        turnoff(20)
+        a = Thread(target=kitt, args=())
+        a.start()
+        
+    if choice == "2":
+        G.kill = True
+        time.sleep(0.1)
+        G.kill = False
+        turnoff(20)
+        b = Thread(target=bounceballs, args=())
+        b.start()
+        
+    if choice == "3":
+        G.kill = True
+        time.sleep(0.1)
+        G.kill = False
+        turnoff(20)
 
 # Main program logic follows:
 if __name__ == '__main__':
     print("Press Ctrl+c to turn off LEDs and exit")
     
     try:
-        test = [dot(color = [0,0,255], size = 3, pos =0, speed = 6)]
-        k = 0
+
+#         test = [dot(color = [0,0,255], size = 3, pos =0, speed = 6)]
                                                
         while True:
             
-            stdscr.refresh()
-            k = stdscr.getkey()
-            print(k)
-            
-            if k == "k":
-                kitt()
-            
-#             strobo(0.05)
-#             showdots(test)
-#             bounceballs()
-#             rainbow(0.1)
-#             confusedkitt()
-#             kitt()
-            
-#             rainbow(0.01)
-#             rainbow(0.009)
-#             rainbow(0.008)
-#             rainbow(0.007)
-#             rainbow(0.006)
-#             rainbow(0.005)
-#             rainbow(0.004)
-#             rainbow(0.003)
-#             rainbow(0.002)
-#             rainbow(0.001)
-#             rainbow(0.001)
-#             rainbow(0.001)
-#             rainbow(0.001)
-#             rainbow(0.001)
-#             rainbow(0.001)
-#             rainbow(0.001)
-#             rainbow(0.001)
-#             rainbow(0.001)
-#             rainbow(0.001)
+            askinput()
 
               
     # if program is interrupted (e.g. through Ctrl+c), all pixels are turned off        
     except KeyboardInterrupt:
+        G.kill = True
+        time.sleep(0.1)
         turnoff(20)
+
         
         
         
