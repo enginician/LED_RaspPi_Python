@@ -13,8 +13,9 @@ LED_pin = board.D18 # Choose an open pin connected to the Data In of the NeoPixe
 num_pixels = 60 # The number of NeoPixels
 length_strip = 1 # length of LED strip in m
 ORDER = neopixel.GRB # The order of the pixel colors - RGB or GRB. Some NeoPixels have red and green reversed! For RGBW NeoPixels, simply change the ORDER to RGBW or GRBW.
+maxbrightness = 1
 
-pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=0.3, auto_write = False, pixel_order = ORDER)
+pixels = neopixel.NeoPixel(LED_pin, num_pixels, brightness=maxbrightness, auto_write = False, pixel_order = ORDER)
 # Select the max brightnee as afloat from 0.0 to 1.0
 # See Neopixel Python library documentation for further details: https://circuitpython.readthedocs.io/projects/neopixel/en/latest/api.html
 
@@ -29,9 +30,154 @@ G = globalVars()
 G.lock = Lock()
 G.kill = False
 
+class dot:
+    def __init__(self, pos=0, color=[0,0,0], size=0, speed=0):
+        
+        self.color = color
+        self.size = size
+        self.pos = pos
+        self.layer = np.array([])
+        self.speed = speed #in pixel/second
+        self.timestamp = time.time() #timestamp used for each object to properly calculate speed
+        self.timestamp_ext = time.time() # time stamp for time dependant effects to be independant of execution time 
+                              
+    # update object position based on object speed:
+    def updatepos(self):
+        deltat = time.time() - self.timestamp
+        self.pos = (self.pos+(self.speed*deltat))
+        self.timestamp = time.time()
+        
+    # provides deltatime for time from last resetdeltatime() request request   
+    def getdeltatime (self):
+        self.deltatime = time.time() - self.timestamp_ext
+        return self.deltatime
+
+    def resetdeltatime (self):
+        self.timestamp_ext = time.time()
+                    
+    # calculating a vector that would be the output to the LED strip if only one instance of this obejct existed
+    # If there are other instances, their color layer vectors will be merged in "def show()"
+    def getlayer(self):
+        self.updatepos()
+        layer = []
+        for x in range(num_pixels):
+            if x < int(self.pos) or x > (int(self.pos)+self.size):
+                layer.insert(x, [0,0,0])
+            elif x == int(self.pos):
+                layer.insert(x, [int(i * (1-(abs(self.pos-int(self.pos))))**3) for i in self.color])
+            elif x == (int(self.pos) + self.size):
+                layer.insert(x, [int(i * (abs(self.pos-int(self.pos)))**3) for i in self.color])
+            else:
+                layer.insert(x,self.color)
+
+        self.layer = np.array(layer)
+        
+def showdots(dots):
+    output = 0
+    for x in range(len(dots)):
+        dots[x].getlayer()
+        output += dots[x].layer       
+        # normalize if resulted color values exceed 255
+        for i in range(output.shape[0]):
+            m = max(output[i])
+            if m >255:
+                output[i] = [int(i/(m/255)) for i in output[i]]           
+        for i in range(num_pixels):
+            pixels[i] = tuple(output[i])
+                
+    pixels.show()
+         
+# Computes resulting color vector from all color layers and send output to LED strip
+# this replaces the NeoPixel built-in pixels.show() and allows to overlay all effects in this code
+def lighttrains():
+    
+    dots=[dot(color=[255,0,0], speed = 5),dot(color=[0,255,0], speed =2),
+          dot(color =[0,0,255], speed = 1), dot(color=[255,0,0], speed = 10),
+          dot(color=[0,255,0], speed = -8),dot(color =[0,0,255], speed = -3),
+        dot(color=[255,0,0], speed = -10),dot(color=[0,255,0], speed =-5)]
+        
+    counter = 0 #timing counter to synchronize actions
+    dotcounter = 0 # initialize counter that counts number of instances of LED dots
+    dotindex = 0 # initialize dotindex
+    timer= randint(10,300)
+        
+    #initialize variable used for leaving light traces in show()
+    outputbefore = []
+    for x in range(num_pixels):
+        outputbefore.append([0,0,0])
+    outputbefore = np.array(outputbefore)
+    
+    while True:
+        
+        # make function threading capable:
+        if G.kill:
+            G.kill = False
+            return 
+            
+#         if counter == timer and dotcounter < 6:
+#                     dots.append(dot(color = [randint(0,255),randint(0,255),randint(0,255)]))
+#                     dotcounter+=1
+#                     print(dotcounter)
+                    
+        if counter == timer:
+            dots[dotindex].size = randint(2,8)
+            dots[dotindex].speed = randint(-100,100)
+            if dots[dotindex].speed >= 0:
+                dots[dotindex].pos = 0 - dots[dotindex].size
+            else:
+                dots[dotindex].pos = num_pixels
+            timer = randint(counter+50, counter +200)
+            dotindex+=1
+            if dotindex >= len(dots):
+                dotindex =0
+#             print ("timer updated and and dot #{} changed".format(dotindex)) 
+        
+        output = 0
+          
+        # create vector "output" that contains light information for every pixel considering all light objects
+        for x in range (len(dots)):
+            # make the dots appear again on the other side of the LED strip once they exceed the LED strip
+            if dots[x].pos > num_pixels:
+               dots[x].pos = 0 - dots[x].size
+            if dots[x].pos < (0-dots[x].size):
+               dots[x].pos = num_pixels
+            else:
+                pass
+           
+            dots[x].getlayer()
+            output += dots[x].layer
+        
+        # consider light information from previous calc step to create light trace effect     
+        for x in range(len(output)):
+            if all(output[x] == 0) and any(outputbefore[x]!= 0):
+                output[x] = outputbefore[x]*0.5
+        
+        # normalize if resulted color values exceed 255
+        for i in range(output.shape[0]):
+            m = max(output[i])
+            if m >255:
+                output[i] = [int(i/(m/255)) for i in output[i]]
+                
+        # send output to LED strip      
+        for i in range(num_pixels):
+            pixels[i] = tuple(output[i])
+        pixels.show()
+        
+        # leave a light trace behind moving light objects
+        outputbefore = output
+        
+        time.sleep(0.001)
+        counter+=1
+
+         
 def sine():
     j = 0
     while True:
+        
+        # make function threading capable:
+        if G.kill:
+            G.kill = False
+            return           
         
         for i in range(num_pixels):
             pixels[i] = (int(abs(128 *(math.sin(i+j))+127)), 0, 0)    
@@ -65,7 +211,7 @@ def kitt():
         
         # make function threading capable:
         if G.kill:
-            G.jill = False
+            G.kill = False
             return        
         
         showdots(dots)
@@ -121,8 +267,6 @@ def kitt():
                     
                     
             holdtimer = dots[0].getdeltatime()
-
-
             
 def confusedkitt():
     
@@ -137,16 +281,20 @@ def confusedkitt():
           dot(color = [1,0,0], size = 5, speed = 40, pos = -8)]
     
     holdtimer = 0
-
-          
+    
     while True:
+        
+        # make function threading capable:
+        if G.kill:
+            G.kill = False
+            return
+        
         showdots(dots)
         
         for x in range(len(dots)):
             if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer<100:
                 dots[x].speed = 0
                 holdtimer +=1
-                print(holdtimer)
             if ((dots[x].pos+dots[x].size) > num_pixels and dots[x].speed >= 0) and holdtimer >= 100:
                 dots[x].speed = -20
                 holdtimer = 0
@@ -158,44 +306,6 @@ def confusedkitt():
                 dots[x].speed = 20
                 holdtimer = 0 
 
-
-
-             
-def rainbow(wait):
-    for j in range(255):
-        for i in range(num_pixels):
-            pixel_index = (i * 256 // num_pixels) + j
-            pixels[i] = wheel(pixel_index & 255)
-        pixels.show()
-        time.sleep(wait)
-        
-def wheel(pos):
-    # Input a value 0 to 255 to get a color value.
-    # The colours are a transition r - g - b - back to r.
-    if pos < 0 or pos > 255:
-        r = g = b = 0
-    elif pos < 85:
-        r = int(pos * 3)
-        g = int(255 - pos*3)
-        b = 0
-    elif pos < 170:
-        pos -= 85
-        r = int(255 - pos*3)
-        g = 0
-        b = int(pos*3)
-    else:
-        pos -= 170
-        r = 0
-        g = int(pos*3)
-        b = int(255 - pos*3)
-    return (r, g, b) if ORDER == neopixel.RGB or ORDER == neopixel.GRB else (r, g, b, 0)
-
-def sparkle():
-    pixels[randint(0,num_pixels-1)] = (255,255,160)
-    pixels.show()
-    time.sleep(0.05)
-    pixels.fill((0,0,0))
-    
 def bounceballs(): # numballs is 12 max
     
     t0 = 6*[time.time()]
@@ -217,7 +327,7 @@ def bounceballs(): # numballs is 12 max
         
         # make function threading capable:
         if G.kill:
-            G.jill = False
+            G.kill = False
             return 
         
         output = 0
@@ -245,149 +355,83 @@ def bounceballs(): # numballs is 12 max
 #         if randint(0,4000) == 0:
 #             return
 
+             
+def rainbow():
     
-class dot:
-    def __init__(self, pos=0, color=[0,0,0], size=0, speed=0):
-        
-        self.color = color
-        self.size = size
-        self.pos = pos
-        self.layer = np.array([])
-        self.speed = speed #in pixel/second
-        self.timestamp = time.time() #timestamp used for each object to properly calculate speed
-        self.timestamp_ext = time.time() # time stamp for time dependant effects to be independant of execution time 
-                              
-    # update object position based on object speed:
-    def updatepos(self):
-        deltat = time.time() - self.timestamp
-        self.pos = (self.pos+(self.speed*deltat))
-        self.timestamp = time.time()
-        
-    # provides deltatime for time from last resetdeltatime() request request   
-    def getdeltatime (self):
-        self.deltatime = time.time() - self.timestamp_ext
-        return self.deltatime
-
-    def resetdeltatime (self):
-        self.timestamp_ext = time.time()
-                    
-    # calculating a vector that would be the output to the LED strip if only one instance of this obejct existed
-    # If there are other instances, their color layer vectors will be merged in "def show()"
-    def getlayer(self):
-        self.updatepos()
-        layer = []
-        for x in range(num_pixels):
-            if x < int(self.pos) or x > (int(self.pos)+self.size):
-                layer.insert(x, [0,0,0])
-            elif x == int(self.pos):
-                layer.insert(x, [int(i * (1-(abs(self.pos-int(self.pos))))**3) for i in self.color])
-            elif x == (int(self.pos) + self.size):
-                layer.insert(x, [int(i * (abs(self.pos-int(self.pos)))**3) for i in self.color])
-            else:
-                layer.insert(x,self.color)
-
-        self.layer = np.array(layer)
-         
-def showdots(dots):
-    output = 0
-    for x in range(len(dots)):
-        dots[x].getlayer()
-        output += dots[x].layer       
-        # normalize if resulted color values exceed 255
-        for i in range(output.shape[0]):
-            m = max(output[i])
-            if m >255:
-                output[i] = [int(i/(m/255)) for i in output[i]]           
-        for i in range(num_pixels):
-            pixels[i] = tuple(output[i])
-                
-    pixels.show()
-    
-
-# Computes resulting color vector from all color layers and send output to LED strip
-# this replaces the NeoPixel built-in pixels.show() and allows to overlay all effects in this code
-def lighttrains():
-    
-    dots=[dot(color=[255,0,0], speed = 5),dot(color=[0,255,0], speed =2),
-          dot(color =[0,0,255], speed = 1), dot(color=[255,0,0], speed = 10),
-          dot(color=[0,255,0], speed = -8),dot(color =[0,0,255], speed = -3),
-        dot(color=[255,0,0], speed = -10),dot(color=[0,255,0], speed =-5)]
-        
-    counter = 0 #timing counter to synchronize actions
-    dotcounter = 0 # initialize counter that counts number of instances of LED dots
-    dotindex = 0 # initialize dotindex
-    timer= randint(10,300)
-        
-    #initialize variable used for leaving light traces in show()
-    outputbefore = []
-    for x in range(num_pixels):
-        outputbefore.append([0,0,0])
-    outputbefore = np.array(outputbefore)
+    wait = 0.01
     
     while True:
-            
-#         if counter == timer and dotcounter < 6:
-#                     dots.append(dot(color = [randint(0,255),randint(0,255),randint(0,255)]))
-#                     dotcounter+=1
-#                     print(dotcounter)
-                    
-        if counter == timer:
-            dots[dotindex].size = randint(2,8)
-            dots[dotindex].speed = randint(-100,100)
-            if dots[dotindex].speed >= 0:
-                dots[dotindex].pos = 0 - dots[dotindex].size
-            else:
-                dots[dotindex].pos = num_pixels
-            timer = randint(counter+50, counter +200)
-            dotindex+=1
-            if dotindex >= len(dots):
-                dotindex =0
-            print ("timer updated and and dot #{} changed".format(dotindex)) 
         
-        output = 0
-          
-        # create vector "output" that contains light information for every pixel considering all light objects
-        for x in range (len(dots)):
-            # make the dots appear again on the other side of the LED strip once they exceed the LED strip
-            if dots[x].pos > num_pixels:
-               dots[x].pos = 0 - dots[x].size
-            if dots[x].pos < (0-dots[x].size):
-               dots[x].pos = num_pixels
-            else:
-                pass
-           
-            dots[x].getlayer()
-            output += dots[x].layer
-        
-        # consider light information from previous calc step to create light trace effect     
-        for x in range(len(output)):
-            if all(output[x] == 0) and any(outputbefore[x]!= 0):
-                output[x] = outputbefore[x]*0.5
-        
-        # normalize if resulted color values exceed 255
-        for i in range(output.shape[0]):
-            m = max(output[i])
-            if m >255:
-                output[i] = [int(i/(m/255)) for i in output[i]]
+        for j in range(255):
+            for i in range(num_pixels):
+                # make function threading capable:
+                if G.kill:
+                    G.kill = False
+                    return
                 
-        # send output to LED strip      
-        for i in range(num_pixels):
-            pixels[i] = tuple(output[i])
+                pixel_index = (i * 256 // num_pixels) + j
+                pixels[i] = wheel(pixel_index & 255)
+            pixels.show()
+            time.sleep(wait)
+            
+def wheel(pos):
+    
+    # make function threading capable:
+    if G.kill:
+        G.kill = False
+        return   
+    
+    # Input a value 0 to 255 to get a color value.
+    # The colours are a transition r - g - b - back to r.
+    if pos < 0 or pos > 255:
+        r = g = b = 0
+    elif pos < 85:
+        r = int(pos * 3)
+        g = int(255 - pos*3)
+        b = 0
+    elif pos < 170:
+        pos -= 85
+        r = int(255 - pos*3)
+        g = 0
+        b = int(pos*3)
+    else:
+        pos -= 170
+        r = 0
+        g = int(pos*3)
+        b = int(255 - pos*3)
+    return (r, g, b) if ORDER == neopixel.RGB or ORDER == neopixel.GRB else (r, g, b, 0)
+
+def sparkle():
+    
+    while True:
+        
+        # make function threading capable:
+        if G.kill:
+            G.kill = False
+            return
+        
+        pixels[randint(0,num_pixels-1)] = (255,255,160)
         pixels.show()
+        time.sleep(0.05)
+        pixels.fill((0,0,0))
         
-        # leave a light trace behind moving light objects
-        outputbefore = output
+def strobo():
+    
+    cycle = 0.1
+    
+    while True:
         
-        time.sleep(0.001)
-        counter+=1
+        # make function threading capable:
+        if G.kill:
+            G.kill = False
+            return
         
-def strobo(cycle):
-    pixels.fill((255,255,255))
-    pixels.show()
-    time.sleep(cycle*(1/10))
-    pixels.fill((0,0,0))
-    pixels.show()
-    time.sleep(cycle/(9/10))
+        pixels.fill((255,255,255))
+        pixels.show()
+        time.sleep(cycle*(1/10))
+        pixels.fill((0,0,0))
+        pixels.show()
+        time.sleep(cycle/(9/10))
 
 # Define functions which turns off LEDs when code is interrupted.
 def turnoff(wait_ms):
@@ -398,42 +442,47 @@ def turnoff(wait_ms):
         pixels.show()
         time.sleep(wait_ms/1000.0)
         
-def cursestest():
-    print("in the function now ")
-    for i in range(500):
-        k = stdscr.getkey()
-        time.sleep(0.01)
-        print(i)
-    print("function finished ")
+def fadeout(t):
+    for i in range (100*t):
+        pixels.brightness = pixels.brightness - (maxbrightness/(100*t))
+        time.sleep(1/(100*t))
     
 def askinput():
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    choice = input("1: kitt\n2: bounceballs\n3: Licht aus!\ninput: ")
+    choice = input("0:   Lights Off!\n1-8: Various Light Effects\ninput: ")
     
-    if choice == "1":
+    if choice == "0":
         G.kill = True
-        time.sleep(0.1)
+        time.sleep(0.5)
         G.kill = False
         turnoff(20)
-        a = Thread(target=kitt, args=())
-        a.start()
         
-    if choice == "2":
-        G.kill = True
-        time.sleep(0.1)
-        G.kill = False
-        turnoff(20)
-        b = Thread(target=bounceballs, args=())
-        b.start()
+    # dictionary with effect number and effect name
+    effects = {1:kitt, 2:confusedkitt, 3:bounceballs, 4:sine, 5:lighttrains, 6:sparkle, 7:rainbow, 8:strobo}
+    
+    for i in range (len(effects)):
+        if choice == str(i+1):
+            fadeout(2)
+            G.kill = True
+            time.sleep(0.5)
+            G.kill = False
+            pixels.brightness = maxbrightness
+            t = Thread(target=effects[i+1], args=())
+            t.start()
+            
+    if choice == "+":
+        pixels.brightness += 0.1
         
-    if choice == "3":
-        G.kill = True
-        time.sleep(0.1)
-        G.kill = False
-        turnoff(20)
+    if choice == "-":
+        pixels.brightness -= 0.1
+    
+
+        
+
 
 # Main program logic follows:
 if __name__ == '__main__':
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Press Ctrl+c to turn off LEDs and exit")
     
     try:
